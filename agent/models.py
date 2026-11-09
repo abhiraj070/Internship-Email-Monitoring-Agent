@@ -4,7 +4,7 @@ Data models and enumerations for the Internship Email Monitoring Agent.
 
 from enum import Enum
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel, Field
 
 
@@ -64,5 +64,5 @@ class ProcessedRecord(BaseModel):
     sender: str
     category: str
     priority: str
-    processed_at: datetime = Field(default_factory=datetime.utcnow)
+    processed_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     notification_sent: bool = False

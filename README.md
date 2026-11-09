@@ -1,42 +1,36 @@
 # Internship Email Monitoring Agent
 
-An intelligent email-monitoring agent designed to monitor a Gmail inbox and identify emails related to internships, job applications, recruitment, and career opportunities, ensuring you never miss critical updates or deadlines.
+An intelligent, non-destructive email-monitoring agent designed to scan your Gmail inbox and detect emails related to internships, job applications, assessments, interviews, and recruiter communications. It sends structured, prioritized alerts directly to your Discord channel via webhook so you never miss a deadline or opportunity.
 
 ---
 
-## 🎯 Primary Objective
+## 🎯 Features
 
-Act as a reliable personal internship recruitment assistant by automatically detecting, classifying, and prioritizing internship-related correspondence, and relaying actionable alerts directly to Discord.
-
----
-
-## 🚀 Key Features
-
-### 1. Email Monitoring
-- **Periodic Inbox Scanning**: Continuously checks for newly received emails in Gmail.
-- **Priority Handling**: Focuses on unread and recently received emails.
-- **Non-Destructive Operations**: Never modifies, deletes, archives, or marks emails as read without explicit user commands.
-- **Deduplication Engine**: Maintains a persistent record of previously processed message and thread IDs to prevent duplicate processing.
-
-### 2. Intelligent Email Classification
-Emails are parsed using full context (sender, subject, body, deadlines, action items) rather than subject keywords alone:
-
-| Classification | Description |
-| :--- | :--- |
-| **`INTERNSHIP_OPPORTUNITY`** | New internship openings, recruitment announcements, direct recruiter outreach. |
-| **`APPLICATION_UPDATE`** | Application confirmations, status changes, shortlisting, or rejection notifications. |
-| **`INTERVIEW`** | Interview invitations, scheduling/rescheduling requests, interview feedback. |
-| **`ASSESSMENT`** | Online assessments (OAs), coding tests, technical assignments, assessment deadlines. |
-| **`RECRUITER_COMMUNICATION`**| Direct recruiter inquiries, document requests, compensation/offer discussions. |
-| **`OTHER_INTERNSHIP_RELATED`**| Any other email reasonably affecting internship search or candidate evaluation. |
-| **`NOT_RELEVANT`** | Marketing, generic newsletters, unrelated notifications, spam. |
-| **`REVIEW_REQUIRED`** | Low-confidence or ambiguous classifications flagged for manual human review. |
+- **Non-Destructive Gmail Monitoring**: Uses the strict `gmail.readonly` OAuth2 scope. Never archives, deletes, or marks emails as read.
+- **Intelligent Classification**: Analyzes sender, subject, full body, deadlines, and expected actions into 8 discrete categories:
+  - `INTERNSHIP_OPPORTUNITY`
+  - `APPLICATION_UPDATE`
+  - `INTERVIEW`
+  - `ASSESSMENT`
+  - `RECRUITER_COMMUNICATION`
+  - `OTHER_INTERNSHIP_RELATED`
+  - `NOT_RELEVANT`
+  - `REVIEW_REQUIRED` (Uncertain/suspicious emails flagged for manual check)
+- **Priority Determination**:
+  - 🔴 **HIGH**: Interview invitations, assessment invitations, urgent deadlines, offer letters.
+  - 🟡 **MEDIUM**: Application status changes, recruiter inquiries, new openings.
+  - 🟢 **LOW**: Curated newsletters, general announcements.
+- **Duplicate Prevention Engine**: SQLite-backed deduplication tracks unique message IDs and thread histories so you never receive duplicate notifications.
+- **Direct Gmail Links**: Every alert provides a direct link to the exact email in your browser.
+- **Security Guardrails**:
+  - Treats email text as untrusted.
+  - Strips HTML scripts/styles safely.
+  - Detects phishing/fraud markers (e.g. wire transfer, telegram requests).
+  - Never auto-replies or executes embedded commands.
 
 ---
 
-## 🔔 Discord Notifications
-
-When an email is classified as relevant, a structured Discord notification is triggered:
+## 🔔 Discord Alert Format
 
 ```text
 🔔 NEW INTERNSHIP EMAIL
@@ -62,62 +56,89 @@ Email Link:
 [Direct Gmail link]
 ```
 
-### Priority Tiers
-
-- 🔴 **HIGH**: Interview invitations, assessment invitations, urgent deadlines, job offers/selection letters.
-- 🟡 **MEDIUM**: Application status updates, recruiter communications, direct opportunities.
-- 🟢 **LOW**: General recruitment announcements, informational newsletters.
-
 ---
 
-## 🛡️ Security & Privacy Guardrails
+## 🛠️ Setup & Installation
 
-- **Untrusted Input Treatment**: Email contents are treated strictly as untrusted text.
-- **No Prompt Injection / Instruction Execution**: Never executes commands embedded within email bodies.
-- **Data Confidentiality**: Never shares email contents outside configured personal notification channels.
-- **Safe Link Handling**: Never auto-downloads attachments or clicks suspicious links.
-- **User Authorization Guard**: Never sends outbound replies or emails without explicit confirmation.
-
----
-
-## 🔁 Execution Flow
-
-```mermaid
-flowchart TD
-    A[Start Monitoring Cycle] --> B[Fetch New / Unread Emails from Gmail]
-    B --> C{Already Processed?}
-    C -- Yes --> D[Skip Email]
-    C -- No --> E[Extract Metadata & Body]
-    E --> F[Classify Email & Assess Priority]
-    F --> G{Relevant to Internships?}
-    G -- No --> H[Record Email ID as Processed]
-    G -- Yes --> I[Format Discord Notification]
-    I --> J[Dispatch Alert to Discord Webhook]
-    J --> H
-    H --> K[Wait for Next Polling Interval]
-    D --> K
-```
-
----
-
-## 🛠️ Setup & Configuration
-
-### Prerequisites
+### 1. Prerequisites
 - Python 3.10+
-- Google Cloud Project with Gmail API enabled (`credentials.json`)
-- Discord Webhook URL
+- Google Cloud Console project with the **Gmail API** enabled and `credentials.json` (OAuth Desktop app) downloaded.
+- A Discord server with a Webhook URL created (Server Settings > Integrations > Webhooks).
 
-### Installation
+### 2. Installation
 ```bash
 git clone https://github.com/abhiraj070/Internship-Email-Monitoring-Agent.git
 cd Internship-Email-Monitoring-Agent
+
+# Set up virtual environment
+python -m venv .venv
+# Windows:
+.\.venv\Scripts\activate
+# Linux/macOS:
+source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### Environment Variables
-Configure `.env`:
+### 3. Environment Configuration
+Copy the template and configure your parameters:
+```bash
+copy .env.example .env
+```
+Edit `.env`:
 ```env
-DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/..."
+DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
 GMAIL_CREDENTIALS_PATH="credentials.json"
+GMAIL_SEARCH_QUERY="is:unread"
 CHECK_INTERVAL_SECONDS=300
 ```
+
+Place your Google Cloud `credentials.json` in the root folder.
+
+### 4. Authenticate Gmail
+Run the one-time authentication flow to generate `token.json`:
+```bash
+python main.py --auth
+```
+
+### 5. Verify Discord Webhook
+Send a test alert to your Discord channel:
+```bash
+python main.py --test-discord
+```
+
+---
+
+## 🚀 Running the Agent
+
+### Start Continuous Monitoring
+Runs every 300 seconds (or configured interval):
+```bash
+python main.py
+```
+
+### Run a Single Cycle (Cron or Scheduled Task)
+```bash
+python main.py --once
+```
+
+### Dry Run (Simulate without sending notifications)
+```bash
+python main.py --dry-run
+```
+
+### Check Agent & Database Status
+```bash
+python main.py --status
+```
+
+---
+
+## 🧪 Testing
+
+Run the full pytest suite:
+```bash
+pytest -v
+```
+All 20 test cases cover classification, parsing, HTML sanitization, persistent deduplication, priority rules, and notification dispatching.
