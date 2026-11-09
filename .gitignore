@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.env
+.venv
+env/
+venv/
+ENV/
+
+# Credentials & Tokens
+credentials.json
+token.json
+client_secret*.json
+
+# Processed Cache
+processed_emails.json
+processed_emails.sqlite
+*.db
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
