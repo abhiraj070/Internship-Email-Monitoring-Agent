@@ -1,6 +1,6 @@
 # Gmail email alerts on GitHub Actions
 
-The `Gmail Email Alerts` workflow checks Gmail approximately every five minutes. It uses the email-alerts Discord webhook, separately from the internship listings bot. Scheduled runs remain skipped until repository variable `EMAIL_MONITOR_ENABLED` is set to `true`.
+The `Gmail Email Alerts` workflow checks Gmail once daily at approximately 9 AM IST (03:30 UTC). It uses the email-alerts Discord webhook, separately from the internship listings bot. Scheduled runs remain skipped until repository variable `EMAIL_MONITOR_ENABLED` is set to `true`.
 
 ## 1. Create Google credentials
 

@@ -124,7 +124,7 @@ python main.py --test-discord
 
 ### GitHub Actions (cloud hosting)
 
-Follow [the Gmail authorization and GitHub Actions setup guide](docs/GITHUB_ACTIONS_SETUP.md). The included workflow runs every five minutes after you configure its two repository secrets and set `EMAIL_MONITOR_ENABLED=true`. It keeps hashed duplicate-tracking state on a separate branch, preserves completed deliveries after partial failures, and does not commit email content or credentials.
+Follow [the Gmail authorization and GitHub Actions setup guide](docs/GITHUB_ACTIONS_SETUP.md). The included workflow runs once daily at 9 AM IST after you configure its two repository secrets and set `EMAIL_MONITOR_ENABLED=true`. It keeps hashed duplicate-tracking state on a separate branch, preserves completed deliveries after partial failures, and does not commit email content or credentials.
 
 ### Start Continuous Monitoring
 Runs every 300 seconds (or configured interval):
