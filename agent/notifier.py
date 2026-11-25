@@ -46,6 +46,7 @@ class DiscordNotifier:
             f"{classification.priority.value}\n\n"
             "Email Link:\n"
             f"{email.direct_link}"
+            + (f"\n\nFind exact email:\n{email.exact_search_link}" if email.exact_search_link else "")
         )
 
     @classmethod
@@ -79,7 +80,9 @@ class DiscordNotifier:
                 },
                 {
                     "name": "Gmail Link",
-                    "value": f"[Open Email]({email.direct_link})",
+                    "value": f"[Open Email]({email.direct_link})" + (
+                        f"\n[Find exact email]({email.exact_search_link})" if email.exact_search_link else ""
+                    ),
                     "inline": True,
                 },
             ],

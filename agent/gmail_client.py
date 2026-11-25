@@ -9,6 +9,7 @@ import logging
 import re
 from pathlib import Path
 from typing import List, Optional
+from urllib.parse import quote, urlencode
 from bs4 import BeautifulSoup
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -36,6 +37,7 @@ class GmailClient:
         self.credentials_path = credentials_path or settings.GMAIL_CREDENTIALS_PATH
         self.token_path = token_path or settings.GMAIL_TOKEN_PATH
         self.service: Optional[Resource] = None
+        self.account_email = ""
 
     def authenticate(self, interactive: bool = True) -> bool:
         """Authenticate with Google OAuth2."""
@@ -86,6 +88,8 @@ class GmailClient:
 
         try:
             self.service = build("gmail", "v1", credentials=creds, cache_discovery=False)
+            profile = self.service.users().getProfile(userId="me").execute()
+            self.account_email = profile["emailAddress"]
             return True
         except Exception as e:
             logger.error("Failed to build Gmail service: %s", e)
@@ -167,7 +171,16 @@ class GmailClient:
 
         body_text = self._extract_body(payload)
 
-        direct_link = f"https://mail.google.com/mail/u/0/#inbox/{message_id}"
+        # Account indexes vary between browsers. Select the authenticated mailbox
+        # explicitly and open the conversation in all mail, including archived mail.
+        base_url = "https://mail.google.com/mail/"
+        if self.account_email:
+            base_url += "?" + urlencode({"authuser": self.account_email})
+        direct_link = f"{base_url}#all/{quote(thread_id or message_id, safe='')}"
+        rfc_message_id = header_map.get("message-id", "").strip().strip("<>")
+        exact_search_link = None
+        if rfc_message_id:
+            exact_search_link = f"{base_url}#search/{quote('rfc822msgid:' + rfc_message_id, safe='')}"
 
         return EmailMessage(
             message_id=message_id,
@@ -179,6 +192,7 @@ class GmailClient:
             snippet=snippet,
             body_text=body_text,
             direct_link=direct_link,
+            exact_search_link=exact_search_link,
         )
 
     def _extract_body(self, payload: dict) -> str:

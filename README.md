@@ -21,7 +21,7 @@ An intelligent, non-destructive email-monitoring agent designed to scan your Gma
   - 🟡 **MEDIUM**: Application status changes, recruiter inquiries, new openings.
   - 🟢 **LOW**: Curated newsletters, general announcements.
 - **Duplicate Prevention Engine**: SQLite-backed deduplication tracks unique message IDs and thread histories so you never receive duplicate notifications.
-- **Direct Gmail Links**: Every alert provides a direct link to the exact email in your browser.
+- **Gmail Links**: Alerts select the monitored Gmail account and link to the email's conversation in All Mail. A **Find exact email** fallback searches by the unique RFC Message-ID when available; Gmail may show a matching result to click. Links continue to locate archived messages.
 - **Security Guardrails**:
   - Treats email text as untrusted.
   - Strips HTML scripts/styles safely.

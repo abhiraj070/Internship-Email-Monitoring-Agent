@@ -50,7 +50,7 @@ def test_parse_message_payload_plain_text():
     assert parsed.sender == "Google Careers"
     assert parsed.sender_email == "careers@google.com"
     assert parsed.body_text == plain_content
-    assert parsed.direct_link == "https://mail.google.com/mail/u/0/#inbox/18a1b2c3d4e5f6"
+    assert parsed.direct_link == "https://mail.google.com/mail/#all/th_12345"
 
 
 def test_parse_message_payload_html_sanitized():
@@ -77,4 +77,28 @@ def test_parse_message_payload_html_sanitized():
 
     assert "alert" not in parsed.body_text  # Script stripped
     assert "Congratulations on your Offer Letter!" in parsed.body_text
-    assert parsed.direct_link == "https://mail.google.com/mail/u/0/#inbox/html_msg_1"
+    assert parsed.direct_link == "https://mail.google.com/mail/#all/th_html"
+
+
+def test_links_select_monitored_account_and_find_exact_message():
+    from urllib.parse import parse_qs, unquote, urlsplit
+    client = GmailClient()
+    client.account_email = 'second+alerts@example.com'
+    parsed = client._parse_message_payload({
+        'id': 'message-2', 'threadId': 'conversation-1',
+        'payload': {'headers': [{'name': 'Message-ID', 'value': '<unique+id/part@example.com>'}]},
+    })
+    direct = urlsplit(parsed.direct_link)
+    exact = urlsplit(parsed.exact_search_link)
+    assert parse_qs(direct.query) == {'authuser': ['second+alerts@example.com']}
+    assert direct.fragment == 'all/conversation-1'
+    assert parse_qs(exact.query) == parse_qs(direct.query)
+    assert unquote(exact.fragment) == 'search/rfc822msgid:unique+id/part@example.com'
+    assert '#inbox' not in parsed.direct_link
+
+
+def test_missing_thread_id_links_to_message_in_all_mail():
+    client = GmailClient()
+    parsed = client._parse_message_payload({'id': 'message-only', 'payload': {}})
+    assert parsed.direct_link.endswith('#all/message-only')
+    assert parsed.exact_search_link is None

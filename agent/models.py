@@ -36,6 +36,7 @@ class EmailMessage(BaseModel):
     snippet: str = ""
     body_text: str = ""
     direct_link: str
+    exact_search_link: Optional[str] = None
 
     @property
     def display_sender(self) -> str:

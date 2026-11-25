@@ -59,6 +59,17 @@ def test_format_embed():
     assert "Action Required" in field_names
 
 
+def test_email_links_are_in_both_alert_formats():
+    email, classification = make_sample_data()
+    email.exact_search_link = 'https://mail.google.com/mail/?authuser=test%40example.com#search/rfc822msgid%3Aunique'
+    plain = DiscordNotifier.format_plain_text(email, classification)
+    embed = DiscordNotifier.format_embed(email, classification)
+    link_field = next(f['value'] for f in embed['fields'] if f['name'] == 'Gmail Link')
+    assert email.direct_link in plain and email.exact_search_link in plain
+    assert f'[Open Email]({email.direct_link})' in link_field
+    assert f'[Find exact email]({email.exact_search_link})' in link_field
+
+
 def test_send_notification_dry_run():
     email, classification = make_sample_data()
     notifier = DiscordNotifier(webhook_url=None)
