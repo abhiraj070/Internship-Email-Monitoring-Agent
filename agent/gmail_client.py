@@ -56,7 +56,7 @@ class GmailClient:
                     logger.warning("Failed to refresh token: %s", e)
                     creds = None
 
-            if not creds:
+            if not creds or not creds.valid:
                 if not self.credentials_path.exists():
                     logger.error(
                         "OAuth credentials not found at %s. Please download credentials.json from Google Cloud Console.",
@@ -122,10 +122,10 @@ class GmailClient:
                     return list(dict.fromkeys(message_ids))
         except HttpError as error:
             logger.error("An error occurred while listing messages: %s", error)
-            return []
+            raise RuntimeError("Gmail message listing failed") from error
         except Exception as e:
             logger.error("Unexpected error querying messages: %s", e)
-            return []
+            raise RuntimeError("Gmail message listing failed") from e
 
     def get_email_message(self, message_id: str) -> Optional[EmailMessage]:
         """Fetch and parse a full email message safely."""

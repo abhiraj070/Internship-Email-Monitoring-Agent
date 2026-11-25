@@ -1,0 +1,93 @@
+name: Gmail Email Alerts
+
+on:
+  schedule:
+    - cron: '2-59/5 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: gmail-email-alerts
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    if: github.event_name == 'workflow_dispatch' || vars.EMAIL_MONITOR_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      EMAIL_STATE_PATH: .email-state/processed_ids.json
+      GMAIL_TOKEN_PATH: .runtime/gmail-token.json
+      GMAIL_SEARCH_QUERY: ${{ vars.GMAIL_SEARCH_QUERY || 'in:inbox newer_than:7d' }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Run regression tests
+        run: python -m pytest -q
+      - name: Prepare Gmail token
+        env:
+          GMAIL_TOKEN_JSON: ${{ secrets.GMAIL_TOKEN_JSON }}
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          token = os.environ['GMAIL_TOKEN_JSON']
+          if not token or not os.environ['DISCORD_WEBHOOK_URL']:
+              raise SystemExit('Set GMAIL_TOKEN_JSON and DISCORD_WEBHOOK_URL repository secrets first.')
+          data = json.loads(token)
+          if not all(data.get(k) for k in ('refresh_token', 'client_id', 'client_secret')):
+              raise SystemExit('GMAIL_TOKEN_JSON must contain the full authorized-user token.json.')
+          path = Path(os.environ['GMAIL_TOKEN_PATH'])
+          path.parent.mkdir(parents=True, exist_ok=True)
+          path.write_text(token)
+          path.chmod(0o600)
+          PY
+      - name: Restore durable duplicate tracking
+        id: state
+        shell: bash
+        run: |
+          set -euo pipefail
+          state_dir="$GITHUB_WORKSPACE/.email-state"
+          remote_ref=$(git ls-remote --heads origin refs/heads/email-monitor-state)
+          if [ -n "$remote_ref" ]; then
+            git fetch origin refs/heads/email-monitor-state
+            git worktree add --detach "$state_dir" FETCH_HEAD
+          else
+            git worktree add --detach "$state_dir" HEAD
+            git -C "$state_dir" switch --orphan email-monitor-state
+          fi
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+      - name: Monitor Gmail and deliver email alerts
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: python cloud_run.py
+      - name: Persist completed alerts even after partial failure
+        if: always() && steps.state.outputs.ready == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          state_dir="$GITHUB_WORKSPACE/.email-state"
+          if [ ! -f "$EMAIL_STATE_PATH" ]; then exit 0; fi
+          git -C "$state_dir" config user.name 'github-actions[bot]'
+          git -C "$state_dir" config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git -C "$state_dir" add -- processed_ids.json
+          if ! git -C "$state_dir" diff --cached --quiet; then
+            git -C "$state_dir" commit -m 'chore: checkpoint completed email alerts [skip ci]'
+            git -C "$state_dir" push origin HEAD:refs/heads/email-monitor-state
+          fi
+      - name: Remove temporary Gmail token
+        if: always()
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          Path(os.environ['GMAIL_TOKEN_PATH']).unlink(missing_ok=True)
+          PY

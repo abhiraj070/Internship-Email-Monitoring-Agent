@@ -98,11 +98,11 @@ Place your Google Cloud `credentials.json` in the root folder.
 
 ### Dedicated Discord channel
 
-Use `#internship-updates` for internship alerts. In Discord, open **Server Settings > Integrations > Webhooks**, expand the existing alert webhook, select `#internship-updates` as its channel, and save. Moving the existing webhook keeps its URL valid, including for scheduled jobs already using it. A webhook token alone cannot change its channel.
+Use the dedicated email-alerts webhook for this agent. The internship listings bot uses a separate webhook in `#internship-updates`. In Discord, open **Server Settings > Integrations > Webhooks** to inspect each webhook's destination. A webhook token alone cannot change its channel.
 
 Set `DISCORD_WEBHOOK_URL` in your local `.env` to that webhook URL. Keep it out of Git. If you create a replacement webhook instead, update every running sender and its deployment secrets as well.
 
-Verify delivery with `python main.py --test-discord` and check that the test appears in `#internship-updates`. This command exits with an error when delivery fails. Gmail authentication is separate and is required for email monitoring.
+Verify delivery with `python main.py --test-discord` and check that the test appears in the email-alerts channel. This command exits with an error when delivery fails. Gmail authentication is separate and is required for email monitoring.
 
 Historical posts stay in their original channel when a webhook is moved; copy or forward the earlier updates into the new channel if needed.
 
@@ -121,6 +121,10 @@ python main.py --test-discord
 ---
 
 ## 🚀 Running the Agent
+
+### GitHub Actions (cloud hosting)
+
+Follow [the Gmail authorization and GitHub Actions setup guide](docs/GITHUB_ACTIONS_SETUP.md). The included workflow runs every five minutes after you configure its two repository secrets and set `EMAIL_MONITOR_ENABLED=true`. It keeps hashed duplicate-tracking state on a separate branch, preserves completed deliveries after partial failures, and does not commit email content or credentials.
 
 ### Start Continuous Monitoring
 Runs every 300 seconds (or configured interval):

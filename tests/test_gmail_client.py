@@ -3,7 +3,17 @@ Unit tests for GmailClient payload parsing and safety mechanisms.
 """
 
 import base64
+from unittest.mock import MagicMock
+import pytest
 from agent.gmail_client import GmailClient, SCOPES
+
+
+def test_listing_failure_is_not_reported_as_empty_inbox():
+    client = GmailClient()
+    client.service = MagicMock()
+    client.service.users().messages().list().execute.side_effect = RuntimeError('offline')
+    with pytest.raises(RuntimeError, match='Gmail message listing failed'):
+        client.list_unprocessed_message_ids()
 
 
 def test_scopes_read_only():
