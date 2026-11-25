@@ -90,7 +90,7 @@ Edit `.env`:
 ```env
 DISCORD_WEBHOOK_URL="https://discord.com/api/webhooks/YOUR_ID/YOUR_TOKEN"
 GMAIL_CREDENTIALS_PATH="credentials.json"
-GMAIL_SEARCH_QUERY="is:unread"
+GMAIL_SEARCH_QUERY="in:inbox is:unread newer_than:1d"
 CHECK_INTERVAL_SECONDS=300
 ```
 
@@ -159,4 +159,4 @@ The tests cover classification, parsing, HTML sanitization, persistent deduplica
 
 Failed alerts remain eligible on the next cycle, including unsuccessful records created by older versions. Dry runs leave processed state unchanged and count previews separately from delivered alerts. Missing webhook configuration fails explicitly. Discord requests disable mentions, bound long email text to message/embed limits, request delivery confirmation, and retry rate limits and temporary server/network failures. A timeout after Discord accepts a message can still cause a duplicate on retry.
 
-`MAX_EMAILS_PER_POLL` controls Gmail's page size (1–500). All matching pages are scanned so processed unread messages cannot block older emails. The default `is:unread` query excludes emails you have already read; use `in:inbox` if you want read inbox emails included too.
+`MAX_EMAILS_PER_POLL` controls Gmail's page size (1–500). All matching pages are scanned so processed unread messages cannot block other eligible emails. The default `in:inbox is:unread newer_than:1d` query includes only unread inbox emails from the last day. Emails already read or older than that window are excluded. The agent leaves emails unread; persistent tracking prevents duplicate alerts.

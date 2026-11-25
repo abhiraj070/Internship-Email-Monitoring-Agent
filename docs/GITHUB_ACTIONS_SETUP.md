@@ -51,7 +51,7 @@ The runner does not need a separate `credentials.json` secret: the authorized-us
 2. Confirm the run succeeds and relevant email alerts appear in the email-alerts Discord channel. A run with no relevant emails sends no message.
 3. Under **Settings > Secrets and variables > Actions > Variables**, add repository variable `EMAIL_MONITOR_ENABLED` with value `true`.
 
-Default cloud search: `in:inbox newer_than:7d`. This includes both read and unread inbox emails from the past week; the first run can send a backlog. Set repository variable `GMAIL_SEARCH_QUERY` to change it, for example `in:inbox newer_than:1d` for a smaller initial window. A rolling window excludes mail older than that window after a prolonged outage.
+Default cloud search: `in:inbox is:unread newer_than:1d`. This includes only unread inbox emails from the last day, excluding read emails and older mail. The live repository variable `GMAIL_SEARCH_QUERY` uses the same filter. The agent leaves emails unread and uses persistent tracking to avoid duplicate alerts. A rolling one-day window excludes older mail if a daily run is delayed or missed.
 
 The workflow grants its built-in token `contents: write` so it can maintain the `email-monitor-state` branch. If repository rules block that branch or token writes, the checkpoint step fails; adjust those rules before relying on unattended runs.
 

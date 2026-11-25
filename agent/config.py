@@ -19,7 +19,7 @@ class Settings:
     # Gmail API Authentication
     GMAIL_CREDENTIALS_PATH: Path = Path(os.getenv("GMAIL_CREDENTIALS_PATH", BASE_DIR / "credentials.json"))
     GMAIL_TOKEN_PATH: Path = Path(os.getenv("GMAIL_TOKEN_PATH", BASE_DIR / "token.json"))
-    GMAIL_SEARCH_QUERY: str = os.getenv("GMAIL_SEARCH_QUERY", "is:unread")
+    GMAIL_SEARCH_QUERY: str = os.getenv("GMAIL_SEARCH_QUERY", "in:inbox is:unread newer_than:1d")
     MAX_EMAILS_PER_POLL: int = int(os.getenv("MAX_EMAILS_PER_POLL", "20"))
 
     # Discord Webhook

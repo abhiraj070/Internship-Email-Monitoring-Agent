@@ -21,7 +21,7 @@ jobs:
     env:
       EMAIL_STATE_PATH: .email-state/processed_ids.json
       GMAIL_TOKEN_PATH: .runtime/gmail-token.json
-      GMAIL_SEARCH_QUERY: ${{ vars.GMAIL_SEARCH_QUERY || 'in:inbox newer_than:7d' }}
+      GMAIL_SEARCH_QUERY: ${{ vars.GMAIL_SEARCH_QUERY || 'in:inbox is:unread newer_than:1d' }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v6
