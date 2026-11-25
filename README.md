@@ -96,6 +96,16 @@ CHECK_INTERVAL_SECONDS=300
 
 Place your Google Cloud `credentials.json` in the root folder.
 
+### Dedicated Discord channel
+
+Use `#internship-updates` for internship alerts. In Discord, open **Server Settings > Integrations > Webhooks**, expand the existing alert webhook, select `#internship-updates` as its channel, and save. Moving the existing webhook keeps its URL valid, including for scheduled jobs already using it. A webhook token alone cannot change its channel.
+
+Set `DISCORD_WEBHOOK_URL` in your local `.env` to that webhook URL. Keep it out of Git. If you create a replacement webhook instead, update every running sender and its deployment secrets as well.
+
+Verify delivery with `python main.py --test-discord` and check that the test appears in `#internship-updates`. This command exits with an error when delivery fails. Gmail authentication is separate and is required for email monitoring.
+
+Historical posts stay in their original channel when a webhook is moved; copy or forward the earlier updates into the new channel if needed.
+
 ### 4. Authenticate Gmail
 Run the one-time authentication flow to generate `token.json`:
 ```bash
@@ -141,4 +151,8 @@ Run the full pytest suite:
 ```bash
 pytest -v
 ```
-All 20 test cases cover classification, parsing, HTML sanitization, persistent deduplication, priority rules, and notification dispatching.
+The tests cover classification, parsing, HTML sanitization, persistent deduplication, priority rules, pagination, and notification delivery failures.
+
+Failed alerts remain eligible on the next cycle, including unsuccessful records created by older versions. Dry runs leave processed state unchanged and count previews separately from delivered alerts. Missing webhook configuration fails explicitly. Discord requests disable mentions, bound long email text to message/embed limits, request delivery confirmation, and retry rate limits and temporary server/network failures. A timeout after Discord accepts a message can still cause a duplicate on retry.
+
+`MAX_EMAILS_PER_POLL` controls Gmail's page size (1–500). All matching pages are scanned so processed unread messages cannot block older emails. The default `is:unread` query excludes emails you have already read; use `in:inbox` if you want read inbox emails included too.

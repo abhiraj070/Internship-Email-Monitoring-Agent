@@ -102,17 +102,24 @@ class GmailClient:
             return []
 
         search_query = query if query is not None else settings.GMAIL_SEARCH_QUERY
-        limit = max_results or settings.MAX_EMAILS_PER_POLL
+        # This is a page size, not a total cap: processed unread emails remain
+        # in Gmail and must not hide older, unprocessed messages forever.
+        limit = max_results if max_results is not None else settings.MAX_EMAILS_PER_POLL
+        if not 1 <= limit <= 500:
+            raise ValueError("Gmail page size must be between 1 and 500")
 
         try:
-            results = (
-                self.service.users()
-                .messages()
-                .list(userId="me", q=search_query, maxResults=limit)
-                .execute()
-            )
-            messages = results.get("messages", [])
-            return [m["id"] for m in messages if "id" in m]
+            message_ids = []
+            page_token = None
+            while True:
+                params = dict(userId="me", q=search_query, maxResults=limit)
+                if page_token:
+                    params["pageToken"] = page_token
+                results = self.service.users().messages().list(**params).execute()
+                message_ids.extend(m["id"] for m in results.get("messages", []) if "id" in m)
+                page_token = results.get("nextPageToken")
+                if not page_token:
+                    return list(dict.fromkeys(message_ids))
         except HttpError as error:
             logger.error("An error occurred while listing messages: %s", error)
             return []

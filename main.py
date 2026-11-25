@@ -56,6 +56,7 @@ def test_discord_webhook():
         print("[SUCCESS] Test notification delivered to Discord successfully!")
     else:
         print("[ERROR] Failed to send Discord notification. Please verify your webhook URL.")
+        sys.exit(1)
 
 
 def check_status():
@@ -130,6 +131,8 @@ def main():
         return
 
     # Normal execution flow
+    if not args.dry_run and not settings.DISCORD_WEBHOOK_URL:
+        parser.error("Set DISCORD_WEBHOOK_URL in .env before starting monitoring.")
     if not settings.GMAIL_TOKEN_PATH.exists():
         print(f"Token file not found at {settings.GMAIL_TOKEN_PATH}. Attempting initial authentication...")
         if not gmail.authenticate(interactive=True):
@@ -146,6 +149,8 @@ def main():
         print("Running single monitoring cycle...")
         stats = service.run_once(dry_run=args.dry_run)
         print("Cycle completed:", stats)
+        if stats["notifications_failed"]:
+            sys.exit(1)
     else:
         service.start_loop(interval_seconds=args.interval, dry_run=args.dry_run)
 

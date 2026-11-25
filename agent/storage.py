@@ -53,7 +53,8 @@ class StorageEngine:
         with closing(self._get_connection()) as conn:
             cursor = conn.cursor()
             cursor.execute(
-                "SELECT 1 FROM processed_emails WHERE message_id = ?",
+                "SELECT 1 FROM processed_emails WHERE message_id = ? "
+                "AND (notification_sent = 1 OR category = 'NOT_RELEVANT')",
                 (message_id,),
             )
             return cursor.fetchone() is not None

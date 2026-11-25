@@ -54,6 +54,8 @@ class AgentService:
             "unprocessed": 0,
             "relevant": 0,
             "notifications_sent": 0,
+            "notifications_failed": 0,
+            "notifications_previewed": 0,
             "skipped_already_processed": 0,
         }
 
@@ -101,9 +103,18 @@ class AgentService:
                     classification=classification,
                     dry_run=dry_run,
                 )
-                if success:
+                if dry_run:
+                    stats["notifications_previewed"] += 1
+                elif success:
                     stats["notifications_sent"] += 1
                     notification_sent = True
+                else:
+                    stats["notifications_failed"] += 1
+                    # Leave failures eligible for delivery on the next cycle.
+                    continue
+
+            if dry_run:
+                continue
 
             # 8. Record processed email ID in persistent storage
             record = ProcessedRecord(
